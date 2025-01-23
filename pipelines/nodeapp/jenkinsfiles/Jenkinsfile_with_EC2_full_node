@@ -1,0 +1,73 @@
+pipeline {
+    agent any
+    environment {
+        DOCKER_REPO_FE = 'mishan202/session-react-frontend-test-1'
+        DOCKER_REPO_BE = 'mishan202/session-node-backend-test-1'
+    }
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git url: 'https://github.com/Mishan20/DevOps-Basics, branch: 'main'
+            }
+        }
+        stage('Build Frontend') {
+            steps {
+                dir('frontend') {
+                    sh 'npm install'
+                    sh 'npm run build'
+                }
+            }
+        }
+        stage('Build Backend') {
+            steps {
+                dir('backend') {
+                    sh 'npm install'
+                }
+            }
+        }
+        stage('Docker Login') {
+            steps {
+                withCredentials([string(credentialsId: 'docker-password', variable: 'dockerPassword')]) {
+                    script {
+                        sh """
+                        docker login -u mishan202 -p %dockerPassword%
+                        """
+                    }
+                }
+            }
+        }
+        stage('Dockerize and Push Frontend') {
+            steps {
+                script {
+                    sh """
+                    docker build -t ${DOCKER_REPO_FE}:latest "./EC2 (day-1)/frontend"
+                    docker push ${DOCKER_REPO_FE}:latest
+                    """
+                }
+            }
+        }
+        stage('Dockerize and Push Backend') {
+            steps {
+                script {
+                    sh """
+                    docker build -t ${DOCKER_REPO_BE}:latest "./EC2 (day-1)/backend"
+                    docker push ${DOCKER_REPO_BE}:latest
+                    """
+                }
+            }
+        }
+        stage('Deployment') {
+            steps {
+                echo "we will cover this in the session -3"
+            }
+        }
+    }
+    post {
+        always {
+            cleanWs()
+            script {
+                sh 'docker logout'
+            }
+        }
+    }
+}

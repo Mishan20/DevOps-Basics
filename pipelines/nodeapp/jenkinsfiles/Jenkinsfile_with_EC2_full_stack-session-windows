@@ -1,0 +1,65 @@
+pipeline {
+    agent any
+    environment {
+        // Docker Hub credentials (configured in Jenkins)
+        DOCKER_CREDENTIALS_ID = 'docker-password'
+        DOCKER_REPO_FE = 'mishan202/session-react-frontend'
+        DOCKER_REPO_BE = 'mishan202/session-node-backend'
+    }
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git url: 'https://github.com/Mishan20/DevOps-Basics.git', branch: 'main'
+            }
+        }
+        stage('Build Frontend') {
+            steps {
+                dir('EC2 (day-1)/frontend') {
+                    sh 'npm install'
+                    sh 'npm run build'
+                }
+            }
+        }
+        stage('Build Backend') {
+            steps {
+                dir('EC2 (day-1)/backend') {
+                    sh 'npm install'
+                }
+            }
+        }
+        stage('Dockerize and Push Frontend') {
+            steps {
+                script {
+                    docker.withRegistry('', DOCKER_CREDENTIALS_ID) {
+                        sh """
+                        docker build -t ${DOCKER_REPO_FE}:latest "./EC2 (day-1)/frontend"
+                        docker push ${DOCKER_REPO_FE}:latest
+                        """
+                    }
+                }
+            }
+        }
+        stage('Dockerize and Push Backend') {
+            steps {
+                script {
+                    docker.withRegistry('', DOCKER_CREDENTIALS_ID) {
+                        sh """
+                        docker build -t ${DOCKER_REPO_BE}:latest "./EC2 (day-1)/backend"
+                        docker push ${DOCKER_REPO_BE}:latest
+                        """
+                    }
+                }
+            }
+        }
+        stage('Deployment') {
+            steps {
+                echo "we will cover this in the session -3"
+            }
+        }
+    }
+    post {
+        always {
+            cleanWs()
+        }
+    }
+}
